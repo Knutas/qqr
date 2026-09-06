@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark">
+    <title>Quick QR code generator</title>
+    <link rel="icon" href="#">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script type="module" src="main.js"></script>
+</head>
+
+<body>
+    <form>
+        <canvas id="qrcode-canvas" hidden></canvas>
+        <svg id="qrcode-svg" hidden>
+            <rect width="100%" height="100%" fill="#FFFFFF" stroke-width="0"></rect>
+            <path d="" fill="#000000" stroke-width="0"></path>
+        </svg>
+
+        <textarea placeholder="Enter value for QR code or append to URL after #" name="text" autofocus></textarea>
+
+        <details>
+            <summary>Advanced</summary>
+
+            <a id="download">Download</a>
+
+            <table>
+                <tbody>
+                    <tr>
+                        <td>Error correction:</td>
+                        <td>
+                            <label><input type="radio" name="errcorlvl" value="low" checked="checked">Low</label>
+                            <label><input type="radio" name="errcorlvl" value="medium">Medium</label>
+                            <label><input type="radio" name="errcorlvl" value="quartile">Quartile</label>
+                            <label><input type="radio" name="errcorlvl" value="high">High</label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Output format:</td>
+                        <td>
+                            <label><input type="radio" name="output-format" value="vector"
+                                    checked="checked">Vector</label>
+                            <label><input type="radio" name="output-format" value="bitmap">Bitmap</label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Border:</td>
+                        <td><input type="number" value="4" min="0" max="100" step="1" name="border">
+                            modules</td>
+                    </tr>
+                    <tr id="scale-row">
+                        <td>Scale:</td>
+                        <td><input type="number" value="8" min="1" max="30" step="1" name="scale">
+                            pixels per module</td>
+                    </tr>
+                    <tr>
+                        <td>Colors:</td>
+                        <td>
+                            Light = <input type="text" value="#FFFFFF" name="light-color">,
+                            dark = <input type="text" value="#000000" name="dark-color">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Version range:</td>
+                        <td>
+                            Minimum = <input type="number" value="1" min="1" max="40" step="1" id="version-min-input"
+                                name="version-min">,
+                            maximum = <input type="number" value="40" min="1" max="40" step="1" id="version-max-input"
+                                name="version-max">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Mask pattern:</td>
+                        <td><input type="number" value="-1" min="-1" max="7" step="1" name="mask">
+                            (-1 for automatic, 0 to 7 for manual)</td>
+                    </tr>
+                    <tr>
+                        <td>Boost <abbr title="error-correcting code">ECC</abbr>:</td>
+                        <td>
+                            <label>
+                                <input type="checkbox" checked="checked" name="boost-ecc" value="true">
+                                Increase EEC level within same version
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Details:</td>
+                        <td>
+                            <dl id="details-output"></dl>
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2">
+                            <small>QR Code library by <a
+                                    href="https://www.nayuki.io/page/qr-code-generator-library">Nayuki</a></small>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </details>
+    </form>
+</body>
+
+</html>

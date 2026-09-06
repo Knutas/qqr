@@ -1,0 +1,112 @@
+name: Set up TypeScript
+description: Install the native TypeScript compiler from a GitHub release
+
+inputs:
+  version:
+    description: TypeScript version, without the leading v. Defaults to latest stable.
+    required: false
+    default: latest
+
+runs:
+  using: composite
+  steps:
+    - name: Check runner platform
+      shell: bash
+      run: |
+        if [[ "${RUNNER_OS}" != "Linux" || "${RUNNER_ARCH}" != "X64" ]]; then
+          echo "::error::This action currently supports only Linux x64; got ${RUNNER_OS}/${RUNNER_ARCH}"
+          exit 1
+        fi
+
+    - name: Resolve TypeScript version
+      shell: bash
+      env:
+        REQUESTED_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+
+        if [[ "$REQUESTED_VERSION" == "latest" ]]; then
+          api_url="https://api.github.com/repos/microsoft/TypeScript/releases/latest"
+
+          version="$(
+            curl --fail --silent --show-error \
+              -H 'Accept: application/vnd.github+json' \
+              "$api_url" |
+            jq -r '.tag_name | ltrimstr("v")'
+          )"
+        elif [[ "$REQUESTED_VERSION" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+          prefix="$REQUESTED_VERSION"
+          api_url="https://api.github.com/repos/microsoft/TypeScript/releases?per_page=100"
+
+          version="$(
+            curl --fail --silent --show-error \
+              -H 'Accept: application/vnd.github+json' \
+              "$api_url" |
+            jq -r --arg prefix "$prefix" '
+              [
+                .[]
+                | select(.draft == false and .prerelease == false)
+                | select(
+                    (.tag_name == ("v" + $prefix))
+                    or (.tag_name | startswith("v" + $prefix + "."))
+                  )
+              ]
+              | .[0].tag_name
+              | ltrimstr("v")
+            '
+          )"
+        else
+          echo "::error::Invalid TypeScript version: $REQUESTED_VERSION"
+          exit 1
+        fi
+
+        if [[ -z "$version" || "$version" == "null" ]]; then
+          echo "::error::No stable TypeScript release matches '$REQUESTED_VERSION'"
+          exit 1
+        fi
+
+        echo "Resolved TypeScript version: $version"
+        echo "TYPESCRIPT_VERSION=$version" >> "$GITHUB_ENV"
+
+    - name: Validate TypeScript version
+      shell: bash
+      env:
+        VERSION: ${{ env.TYPESCRIPT_VERSION }}
+      run: |
+        set -euo pipefail
+
+        if [[ ! "$VERSION" =~ ^[0-9]+(\.[0-9]+){0,2}([.-].*)?$ ]]; then
+          echo "::error::Invalid TypeScript version: $VERSION"
+          exit 1
+        fi
+
+        major="${VERSION%%.*}"
+
+        if (( 10#$major < 7 )); then
+          echo "::error::TypeScript version 7 or newer is required; received $VERSION"
+          exit 1
+        fi
+
+    - name: Download TypeScript
+      shell: bash
+      env:
+        VERSION: ${{ env.TYPESCRIPT_VERSION }}
+      run: |
+        set -euo pipefail
+
+        archive="typescript-linux-x64.tgz"
+        url="https://github.com/microsoft/TypeScript/releases/download/v${VERSION}/${archive}"
+        archive_path="$RUNNER_TEMP/$archive"
+        install_path="$RUNNER_TEMP/typescript"
+
+        curl --fail --silent --show-error --location \
+          "$url" \
+          --output "$archive_path"
+
+        mkdir -p "$install_path"
+        tar -xzf "$archive_path" -C "$install_path"
+
+        test -x "$install_path/package/lib/tsc"
+        echo "$install_path/package/lib" >> "$GITHUB_PATH"
+
+        "$install_path/package/lib/tsc" --version
